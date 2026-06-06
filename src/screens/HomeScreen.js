@@ -1,4 +1,4 @@
-import { useContext } from 'react';
+import { useContext, useMemo, useState } from 'react';
 import {
   Alert,
   Image,
@@ -12,7 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { CartContext } from '../context/CartContext';
-import { recommendFood } from '../ai/recommender';
+import { getRecommendation, recommendFood } from '../ai/recommender';
 import { menuData } from '../data/menuData';
 import { colors, radii } from '../theme/tokens';
 
@@ -28,11 +28,23 @@ const opsCards = [
 ];
 
 export default function HomeScreen({ navigation }) {
-  const { itemCount } = useContext(CartContext);
-  const featuredItems = menuData.slice(0, 3);
+  const { itemCount, addToCart } = useContext(CartContext);
+  const featuredItems = useMemo(() => menuData.slice(0, 6), []);
+  const [recommendation, setRecommendation] = useState(() => getRecommendation(menuData));
 
-  const handleRecommendation = () => {
-    Alert.alert('AI Recommendation', recommendFood(menuData));
+  const refreshRecommendation = () => {
+    const nextRecommendation = getRecommendation(menuData);
+    setRecommendation(nextRecommendation);
+  };
+
+  const handleAddRecommended = () => {
+    if (!recommendation?.item) {
+      Alert.alert('Recommendation', 'No recommendation is available right now.');
+      return;
+    }
+
+    addToCart(recommendation.item);
+    Alert.alert('Added to cart', `${recommendation.item.name} has been added to your cart.`);
   };
 
   return (
@@ -113,7 +125,9 @@ export default function HomeScreen({ navigation }) {
                 <Image source={{ uri: item.image }} style={styles.featuredImage} />
               </View>
               <Text style={styles.featuredName}>{item.name}</Text>
-              <Text style={styles.featuredMeta}>{item.prepTime} - {item.calories}</Text>
+              <Text style={styles.featuredMeta}>
+                {item.prepTime} - {item.calories}
+              </Text>
               <View style={styles.featuredFooter}>
                 <Text style={styles.featuredPrice}>Rs. {item.price}</Text>
                 <Text style={styles.featuredTag}>{item.tag}</Text>
@@ -137,11 +151,78 @@ export default function HomeScreen({ navigation }) {
           ))}
         </View>
 
-        <TouchableOpacity style={styles.aiCard} onPress={handleRecommendation} activeOpacity={0.9}>
-          <Text style={styles.aiEyebrow}>Smart suggestion</Text>
-          <Text style={styles.aiTitle}>Let the assistant pick your next order</Text>
-          <Text style={styles.aiText}>Tap once for a curated recommendation based on the current menu.</Text>
-        </TouchableOpacity>
+        <View style={styles.aiCard}>
+          <View style={styles.aiHeaderRow}>
+            <View style={styles.aiHeaderCopy}>
+              <Text style={styles.aiEyebrow}>Smart suggestion</Text>
+              <Text style={styles.aiTitle}>Recommendation workspace</Text>
+              <Text style={styles.aiText}>Live menu intelligence with a direct add-to-cart action.</Text>
+            </View>
+            <View style={styles.aiScorePill}>
+              <Text style={styles.aiScoreLabel}>Score</Text>
+              <Text style={styles.aiScoreValue}>{Math.round(recommendation?.score || 0)}</Text>
+            </View>
+          </View>
+
+          {recommendation?.item ? (
+            <View style={styles.recommendationCard}>
+              <View style={styles.recommendationMedia}>
+                <Image source={{ uri: recommendation.item.image }} style={styles.recommendationImage} />
+                <View style={styles.recommendationOverlay}>
+                  <Text style={styles.overlayTag}>{recommendation.item.tag}</Text>
+                  <Text style={styles.overlayTitle}>{recommendation.item.name}</Text>
+                </View>
+              </View>
+
+              <View style={styles.recommendationCopy}>
+                <View style={styles.recommendationTopRow}>
+                  <Text style={styles.recommendationKicker}>{recommendation.subtitle}</Text>
+                  <Text style={styles.recommendationTime}>{recommendation.item.prepTime}</Text>
+                </View>
+                <Text style={styles.recommendationReason}>{recommendation.reason}</Text>
+
+                <View style={styles.recommendationMetaRow}>
+                  <View style={styles.recommendationMetaPill}>
+                    <Text style={styles.recommendationMetaLabel}>Price</Text>
+                    <Text style={styles.recommendationMetaValue}>Rs. {recommendation.item.price}</Text>
+                  </View>
+                  <View style={styles.recommendationMetaPill}>
+                    <Text style={styles.recommendationMetaLabel}>Calories</Text>
+                    <Text style={styles.recommendationMetaValue}>{recommendation.item.calories}</Text>
+                  </View>
+                </View>
+
+                <View style={styles.recommendationActions}>
+                  <TouchableOpacity
+                    style={styles.recommendationPrimary}
+                    onPress={handleAddRecommended}
+                    activeOpacity={0.9}
+                  >
+                    <Text style={styles.recommendationPrimaryText}>Add to Cart</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.recommendationSecondary}
+                    onPress={refreshRecommendation}
+                    activeOpacity={0.9}
+                  >
+                    <Text style={styles.recommendationSecondaryText}>Refresh pick</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          ) : null}
+
+          <View style={styles.recommendationFooter}>
+            <Text style={styles.recommendationFooterText}>Based on rating, speed, and menu appeal.</Text>
+            <TouchableOpacity
+              onPress={() => Alert.alert('AI Recommendation', recommendFood(menuData))}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.linkText}>See text summary</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -409,11 +490,26 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   aiCard: {
-    backgroundColor: colors.accentSoft,
+    backgroundColor: colors.surface,
     borderRadius: radii.lg,
     padding: 20,
     borderWidth: 1,
-    borderColor: '#FED7AA',
+    borderColor: colors.border,
+    shadowColor: colors.shadow,
+    shadowOpacity: 1,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 2,
+  },
+  aiHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 16,
+  },
+  aiHeaderCopy: {
+    flex: 1,
+    paddingRight: 12,
   },
   aiEyebrow: {
     color: colors.accent,
@@ -425,12 +521,176 @@ const styles = StyleSheet.create({
   },
   aiTitle: {
     color: colors.text,
-    fontSize: 19,
+    fontSize: 20,
     fontWeight: '800',
     marginBottom: 8,
   },
   aiText: {
-    color: '#9A3412',
+    color: colors.textMuted,
     lineHeight: 22,
+  },
+  aiScorePill: {
+    minWidth: 68,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: radii.md,
+    backgroundColor: colors.surfaceMuted,
+    alignItems: 'center',
+  },
+  aiScoreLabel: {
+    color: colors.textMuted,
+    fontSize: 11,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    marginBottom: 4,
+    fontWeight: '700',
+  },
+  aiScoreValue: {
+    color: colors.text,
+    fontSize: 20,
+    fontWeight: '800',
+  },
+  recommendationCard: {
+    backgroundColor: colors.surface,
+    borderRadius: radii.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    overflow: 'hidden',
+  },
+  recommendationMedia: {
+    position: 'relative',
+    backgroundColor: colors.surfaceMuted,
+  },
+  recommendationImage: {
+    width: '100%',
+    height: 220,
+    resizeMode: 'cover',
+  },
+  recommendationOverlay: {
+    position: 'absolute',
+    left: 16,
+    right: 16,
+    bottom: 16,
+    backgroundColor: 'rgba(15, 23, 42, 0.62)',
+    borderRadius: radii.md,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  overlayTag: {
+    color: '#FDBA74',
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    marginBottom: 4,
+  },
+  overlayTitle: {
+    color: colors.surface,
+    fontSize: 18,
+    fontWeight: '800',
+  },
+  recommendationCopy: {
+    padding: 18,
+  },
+  recommendationTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  recommendationKicker: {
+    color: colors.textMuted,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  recommendationTime: {
+    color: colors.textMuted,
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  recommendationReason: {
+    color: colors.textMuted,
+    lineHeight: 22,
+    marginBottom: 10,
+  },
+  recommendationMetaRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginHorizontal: -6,
+    marginBottom: 16,
+  },
+  recommendationMetaPill: {
+    flex: 1,
+    minWidth: 120,
+    backgroundColor: colors.surfaceMuted,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginHorizontal: 6,
+    marginBottom: 10,
+  },
+  recommendationMetaLabel: {
+    color: colors.textMuted,
+    fontSize: 11,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    marginBottom: 4,
+  },
+  recommendationMetaValue: {
+    color: colors.text,
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  recommendationActions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginHorizontal: -5,
+  },
+  recommendationPrimary: {
+    backgroundColor: colors.primary,
+    borderRadius: radii.pill,
+    paddingHorizontal: 18,
+    paddingVertical: 13,
+    marginHorizontal: 5,
+    marginBottom: 10,
+    minWidth: 130,
+  },
+  recommendationPrimaryText: {
+    color: colors.surface,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
+  recommendationSecondary: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radii.pill,
+    paddingHorizontal: 18,
+    paddingVertical: 13,
+    marginHorizontal: 5,
+    marginBottom: 10,
+    minWidth: 130,
+  },
+  recommendationSecondaryText: {
+    color: colors.text,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
+  recommendationFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    marginTop: 14,
+  },
+  recommendationFooterText: {
+    color: colors.textMuted,
+    flex: 1,
+    minWidth: 180,
+    marginRight: 12,
+    marginBottom: 8,
   },
 });

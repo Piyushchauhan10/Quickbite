@@ -36,9 +36,10 @@ export default function App() {
             headerShadowVisible: false,
             headerTitleStyle: {
               fontWeight: '700',
-              fontSize: 18,
+              fontSize: 17,
               color: colors.text,
             },
+            headerBackTitleVisible: false,
             headerTintColor: colors.text,
             contentStyle: {
               backgroundColor: colors.background,
@@ -53,7 +54,9 @@ export default function App() {
           <Stack.Screen
             name="Menu"
             component={MenuScreen}
-            options={{ title: 'Curated Menu' }}
+            options={{
+              headerShown: false,
+            }}
           />
           <Stack.Screen
             name="Cart"

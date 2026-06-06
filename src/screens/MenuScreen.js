@@ -1,5 +1,5 @@
 import { useContext, useMemo, useState } from 'react';
-import { FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { FlatList, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { CartContext } from '../context/CartContext';
@@ -11,9 +11,14 @@ import { colors, radii } from '../theme/tokens';
 export default function MenuScreen({ navigation }) {
   const { addToCart, itemCount, getTotal } = useContext(CartContext);
   const [selected, setSelected] = useState('All');
+  const [searchText, setSearchText] = useState('');
   const [query, setQuery] = useState('');
 
   const categories = useMemo(() => ['All', ...new Set(menuData.map((item) => item.category))], []);
+
+  const handleSearch = () => {
+    setQuery(searchText.trim());
+  };
 
   const filtered = useMemo(() => {
     const categoryFiltered =
@@ -32,41 +37,52 @@ export default function MenuScreen({ navigation }) {
   }, [query, selected]);
 
   return (
-    <SafeAreaView style={styles.screen} edges={['bottom']}>
-      <View style={styles.headerBlock}>
-        <Text style={styles.title}>Curated for fast-moving teams</Text>
-        <Text style={styles.subtitle}>High-conviction dishes with stronger discovery, filtering, and merchandising.</Text>
-      </View>
+    <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
+      <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
 
-      <View style={styles.searchBox}>
-        <Text style={styles.searchLabel}>Search dishes</Text>
-        <TextInput
-          value={query}
-          onChangeText={setQuery}
-          placeholder="Search pizza, pasta, desserts..."
-          placeholderTextColor="#94A3B8"
-          style={styles.searchInput}
-        />
-      </View>
+      <View style={styles.topBar}>
+        <View style={styles.leftSide}>
+          <TouchableOpacity
+            onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home'))}
+            style={styles.backButton}
+            activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+          >
+            <Text style={styles.backIcon}>{'<'}</Text>
+          </TouchableOpacity>
 
-      <View style={styles.analyticsRow}>
-        <View style={styles.analyticsCardWrap}>
-          <View style={styles.analyticsCard}>
-            <Text style={styles.analyticsValue}>{filtered.length}</Text>
-            <Text style={styles.analyticsLabel}>Matches</Text>
+          <View style={styles.titleWrap}>
+            <Text style={styles.eyebrow}>Chef-picked dishes</Text>
+            <Text style={styles.headerTitle}>Curated Menu</Text>
           </View>
         </View>
-        <View style={styles.analyticsCardWrap}>
-          <View style={styles.analyticsCard}>
-            <Text style={styles.analyticsValue}>4.8</Text>
-            <Text style={styles.analyticsLabel}>Top rating</Text>
+
+        <View style={styles.searchInlineWrap}>
+          <View style={styles.searchField}>
+            <Text style={styles.searchIcon}>{'\u{1F50D}'}</Text>
+            <TextInput
+              value={searchText}
+              onChangeText={setSearchText}
+              placeholder="Search pizza, pasta, desserts..."
+              placeholderTextColor="#94A3B8"
+              style={styles.searchInput}
+              returnKeyType="search"
+              onSubmitEditing={handleSearch}
+              autoCorrect={false}
+              autoCapitalize="none"
+            />
           </View>
-        </View>
-        <View style={styles.analyticsCardWrap}>
-          <View style={styles.analyticsCard}>
-            <Text style={styles.analyticsValue}>12m</Text>
-            <Text style={styles.analyticsLabel}>Fastest prep</Text>
-          </View>
+
+          <TouchableOpacity
+            style={styles.searchButton}
+            onPress={handleSearch}
+            activeOpacity={0.9}
+            accessibilityRole="button"
+            accessibilityLabel="Search dishes"
+          >
+            <Text style={styles.searchButtonText}>Search</Text>
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -113,73 +129,117 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
     paddingHorizontal: 16,
-    paddingTop: 10,
+    paddingTop: 6,
   },
-  headerBlock: {
-    marginBottom: 16,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: colors.text,
-    marginBottom: 8,
-  },
-  subtitle: {
-    color: colors.textMuted,
-    lineHeight: 22,
-  },
-  searchBox: {
-    backgroundColor: colors.surface,
-    borderRadius: radii.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: 16,
-    marginBottom: 14,
-  },
-  searchLabel: {
-    color: colors.textMuted,
-    fontSize: 12,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: 8,
-  },
-  searchInput: {
-    backgroundColor: colors.surfaceMuted,
-    borderRadius: radii.md,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    color: colors.text,
-    fontSize: 15,
-  },
-  analyticsRow: {
+  topBar: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginHorizontal: -5,
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 14,
+    paddingTop: 2,
   },
-  analyticsCardWrap: {
-    width: '33.33%',
-    minWidth: 100,
-    paddingHorizontal: 5,
+  leftSide: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexGrow: 1,
+    minWidth: 210,
+    marginRight: 12,
     marginBottom: 10,
   },
-  analyticsCard: {
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+    shadowColor: colors.shadow,
+    shadowOpacity: 1,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 2,
+  },
+  backIcon: {
+    color: colors.text,
+    fontSize: 20,
+    fontWeight: '700',
+    marginTop: -1,
+  },
+  titleWrap: {
+    flex: 1,
+    minWidth: 0,
+  },
+  eyebrow: {
+    color: colors.textMuted,
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    marginBottom: 2,
+  },
+  headerTitle: {
+    color: colors.text,
+    fontSize: 18,
+    fontWeight: '800',
+    lineHeight: 22,
+  },
+  searchInlineWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexGrow: 1,
+    flexBasis: 240,
+    minWidth: 220,
+    marginBottom: 10,
+  },
+  searchField: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surfaceMuted,
     borderRadius: radii.md,
     borderWidth: 1,
     borderColor: colors.border,
-    padding: 14,
+    paddingHorizontal: 12,
+    marginRight: 10,
+    minHeight: 44,
+    outlineStyle: 'none',
   },
-  analyticsValue: {
-    color: colors.text,
-    fontWeight: '800',
-    fontSize: 19,
-    marginBottom: 4,
-  },
-  analyticsLabel: {
+  searchIcon: {
     color: colors.textMuted,
-    fontSize: 12,
+    fontSize: 18,
+    marginRight: 8,
+    marginTop: -1,
+  },
+  searchInput: {
+    flex: 1,
+    paddingVertical: 10,
+    color: colors.text,
+    fontSize: 15,
+    outlineStyle: 'none',
+    borderWidth: 0,
+  },
+  searchButton: {
+    backgroundColor: colors.primary,
+    borderRadius: radii.md,
+    paddingHorizontal: 16,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: colors.shadow,
+    shadowOpacity: 1,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 2,
+  },
+  searchButtonText: {
+    color: colors.surface,
+    fontSize: 13,
+    fontWeight: '800',
+    letterSpacing: 0.3,
   },
   listContent: {
     paddingBottom: 24,
@@ -194,6 +254,11 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     padding: 18,
     marginTop: 10,
+    shadowColor: colors.shadow,
+    shadowOpacity: 1,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 1,
   },
   emptyTitle: {
     color: colors.text,
